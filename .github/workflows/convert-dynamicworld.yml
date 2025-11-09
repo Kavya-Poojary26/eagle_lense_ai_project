@@ -1,79 +1,35 @@
-name: Convert DynamicWorld TFJS
+name: Convert DynamicWorld TF Model to TFJS
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
-    inputs:
-      forward_savedmodel_path:
-        description: "Relative path to forward SavedModel"
-        required: true
-        default: "model/forward"
-      backward_savedmodel_path:
-        description: "Relative path to backward SavedModel"
-        required: false
-        default: "model/backward"
-      forward_output_path:
-        description: "Output directory for forward TFJS model"
-        required: false
-        default: "server/models/dynamicworld/forward"
-      backward_output_path:
-        description: "Output directory for backward TFJS model"
-        required: false
-        default: "server/models/dynamicworld/backward"
 
 jobs:
-  convert:
+  convert_dynamicworld:
     runs-on: ubuntu-latest
+
+    env:
+      DYNAMICWORLD_MODEL_PATH: ./models/dynamicworld  # Path to your downloaded DynamicWorld SavedModel
+      TFJS_OUTPUT_PATH: ./tfjs_models/dynamicworld   # Output folder for converted TFJS model
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
-      - name: Pull Docker image with TensorFlow
-        run: |
-          docker pull tensorflow/tensorflow:2.12.0
+      - name: Pull TensorFlow Docker image
+        run: docker pull tensorflow/tensorflow:2.12.0
 
-      - name: Convert forward SavedModel -> TFJS
-        env:
-          SAVEDMODEL_PATH: ${{ github.event.inputs.forward_savedmodel_path }}
-          OUTPUT_PATH: ${{ github.event.inputs.forward_output_path }}
+      - name: Convert DynamicWorld model to TFJS
         run: |
-          docker run --rm -v ${{ github.workspace }}:/workspace -w /workspace \
-            tensorflow/tensorflow:2.12.0 bash -c "\
+          docker run --rm -v $GITHUB_WORKSPACE:/workspace -w /workspace tensorflow/tensorflow:2.12.0 bash -c "\
             pip install --upgrade pip && \
-            pip install 'numpy<2' tensorflowjs==3.18.0 && \
+            pip install 'numpy<2' tensorflowjs==3.18.0 protobuf==3.20.3 && \
+            echo 'Converting DynamicWorld model...' && \
             tensorflowjs_converter \
               --input_format=tf_saved_model \
               --signature_name=serving_default \
               --saved_model_tags=serve \
-              $SAVEDMODEL_PATH \
-              $OUTPUT_PATH \
-            "
-
-      - name: Convert backward SavedModel -> TFJS
-        env:
-          SAVEDMODEL_PATH: ${{ github.event.inputs.backward_savedmodel_path }}
-          OUTPUT_PATH: ${{ github.event.inputs.backward_output_path }}
-        run: |
-          if [ -d "${{ github.workspace }}/$SAVEDMODEL_PATH" ]; then
-            docker run --rm -v ${{ github.workspace }}:/workspace -w /workspace \
-              tensorflow/tensorflow:2.12.0 bash -c "\
-              pip install --upgrade pip && \
-              pip install 'numpy<2' tensorflowjs==3.18.0 && \
-              tensorflowjs_converter \
-                --input_format=tf_saved_model \
-                --signature_name=serving_default \
-                --saved_model_tags=serve \
-                $SAVEDMODEL_PATH \
-                $OUTPUT_PATH \
-              "
-          else
-            echo "Backward model path not present, skipping"
-          fi
-
-      - name: Upload TFJS artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: dynamicworld-tfjs
-          path: |
-            ${{ github.event.inputs.forward_output_path }}/**
-            ${{ github.event.inputs.backward_output_path }}/**
+              $DYNAMICWORLD_MODEL_PATH \
+              $TFJS_OUTPUT_PATH"
