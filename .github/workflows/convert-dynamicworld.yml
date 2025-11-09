@@ -19,6 +19,7 @@ on:
 jobs:
   convert:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -42,11 +43,8 @@ jobs:
           git clone --depth 1 https://github.com/google/dynamicworld.git dynamicworld || (echo "clone failed" && exit 1)
           ls -la dynamicworld || true
 
-      - name: Copy conversion script into workspace
-        run: |
-          mkdir -p .github/scripts
-          cp .github/scripts/convert_dynamicworld.sh .github/scripts/convert_dynamicworld.sh
-          chmod +x .github/scripts/convert_dynamicworld.sh
+      - name: Make conversion script executable
+        run: chmod +x .github/scripts/convert_dynamicworld.sh
 
       - name: Convert forward SavedModel -> TFJS
         env:
