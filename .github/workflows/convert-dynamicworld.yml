@@ -8,15 +8,19 @@ on:
         required: true
         default: "model/forward"
       backward_savedmodel_path:
-        description: "Relative path to backward SavedModel (optional)"
+        description: "Relative path to backward SavedModel"
         required: false
         default: "model/backward"
+      commit_changes:
+        description: "Commit converted TFJS back to repo?"
+        required: true
+        default: "false"
       forward_output_path:
-        description: "Output directory for forward TFJS model"
+        description: "Custom output directory for forward TFJS model"
         required: false
         default: "server/models/dynamicworld/forward"
       backward_output_path:
-        description: "Output directory for backward TFJS model"
+        description: "Custom output directory for backward TFJS model"
         required: false
         default: "server/models/dynamicworld/backward"
 
@@ -32,19 +36,19 @@ jobs:
         with:
           node-version: 18
 
-      - name: Setup Python
+      - name: Setup Python 3.9
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.9'
 
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install "numpy<2"
+          pip install "numpy<1.25"
           pip install tensorflow-cpu==2.12.0
-          pip install tensorflowjs==3.18.0  # avoids JAX issues
+          pip install tensorflowjs==3.18.0
 
-      - name: Clone DynamicWorld repository
+      - name: Clone DynamicWorld
         run: |
           git clone --depth 1 https://github.com/google/dynamicworld.git dynamicworld
 
@@ -59,7 +63,7 @@ jobs:
             --signature_name=serving_default \
             --saved_model_tags=serve \
             dynamicworld/${SAVEDMODEL_PATH} \
-            ${OUTPUT_PATH} || (echo "Forward conversion failed!" && exit 1)
+            ${OUTPUT_PATH} || (echo "Forward conversion failed" && exit 1)
 
       - name: Convert backward SavedModel -> TFJS
         env:
@@ -73,9 +77,9 @@ jobs:
               --signature_name=serving_default \
               --saved_model_tags=serve \
               dynamicworld/${SAVEDMODEL_PATH} \
-              ${OUTPUT_PATH} || echo "Backward conversion failed!"
+              ${OUTPUT_PATH} || echo "Backward conversion failed"
           else
-            echo "Backward model not found, skipping..."
+            echo "Backward model path not present, skipping"
           fi
 
       - name: Upload TFJS artifacts
