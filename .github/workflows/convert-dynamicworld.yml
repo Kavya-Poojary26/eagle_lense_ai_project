@@ -46,7 +46,7 @@ jobs:
           tensorflowjs_converter \
             --input_format=tf_saved_model \
             --output_format=tfjs_graph_model \
-            ./dynamicworld/model/forward/saved_model \
+            ./dynamicworld/model/forward \
             ./dynamicworld/model/forward/tfjs_model
 
       # 7. Convert backward model
@@ -56,7 +56,7 @@ jobs:
           tensorflowjs_converter \
             --input_format=tf_saved_model \
             --output_format=tfjs_graph_model \
-            ./dynamicworld/model/backward/saved_model \
+            ./dynamicworld/model/backward \
             ./dynamicworld/model/backward/tfjs_model
 
       # 8. Success message
