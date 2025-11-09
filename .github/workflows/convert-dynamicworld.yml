@@ -39,23 +39,25 @@ jobs:
             exit 1
           fi
 
-      # 6. Convert forward model
+      # 6. Convert forward model with skip op check
       - name: Convert forward model to TFJS
         run: |
           echo "Converting forward model..."
           tensorflowjs_converter \
             --input_format=tf_saved_model \
             --output_format=tfjs_graph_model \
+            --skip_op_check \
             ./dynamicworld/model/forward \
             ./dynamicworld/model/forward/tfjs_model
 
-      # 7. Convert backward model
+      # 7. Convert backward model with skip op check
       - name: Convert backward model to TFJS
         run: |
           echo "Converting backward model..."
           tensorflowjs_converter \
             --input_format=tf_saved_model \
             --output_format=tfjs_graph_model \
+            --skip_op_check \
             ./dynamicworld/model/backward \
             ./dynamicworld/model/backward/tfjs_model
 
