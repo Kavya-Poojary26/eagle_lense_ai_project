@@ -1,4 +1,4 @@
-name: Convert DynamicWorld TF Model to TFJS
+name: Convert DynamicWorld Model
 
 on:
   push:
@@ -7,29 +7,42 @@ on:
   workflow_dispatch:
 
 jobs:
-  convert_dynamicworld:
+  convert-dynamicworld:
     runs-on: ubuntu-latest
 
-    env:
-      DYNAMICWORLD_MODEL_PATH: ./models/dynamicworld  # Path to your downloaded DynamicWorld SavedModel
-      TFJS_OUTPUT_PATH: ./tfjs_models/dynamicworld   # Output folder for converted TFJS model
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-      - name: Pull TensorFlow Docker image
-        run: docker pull tensorflow/tensorflow:2.12.0
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
 
-      - name: Convert DynamicWorld model to TFJS
-        run: |
-          docker run --rm -v $GITHUB_WORKSPACE:/workspace -w /workspace tensorflow/tensorflow:2.12.0 bash -c "\
-            pip install --upgrade pip && \
-            pip install 'numpy<2' tensorflowjs==3.18.0 protobuf==3.20.3 && \
-            echo 'Converting DynamicWorld model...' && \
-            tensorflowjs_converter \
-              --input_format=tf_saved_model \
-              --signature_name=serving_default \
-              --saved_model_tags=serve \
-              $DYNAMICWORLD_MODEL_PATH \
-              $TFJS_OUTPUT_PATH"
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install tensorflow==2.13.1 tensorflowjs==3.18.0 tensorflow-hub==0.12.0 protobuf==3.20.3
+
+    - name: Download DynamicWorld SavedModel
+      run: |
+        mkdir -p ./models
+        cd ./models
+        # Download the official DynamicWorld model from Google Cloud Storage
+        curl -L -o dynamicworld.zip "https://storage.googleapis.com/dynamicworld-public/models/dynamicworld_v1_20220411.zip"
+        unzip dynamicworld.zip -d dynamicworld
+        rm dynamicworld.zip
+        cd ../
+
+    - name: Convert to TensorFlow.js format
+      run: |
+        mkdir -p ./tfjs_models
+        tensorflowjs_converter \
+          --input_format=tf_saved_model \
+          --output_format=tfjs_graph_model \
+          --skip_op_check \
+          ./models/dynamicworld \
+          ./tfjs_models/dynamicworld
+
+    - name: Done
+      run: echo "DynamicWorld model downloaded and converted successfully!"
