@@ -8,19 +8,15 @@ on:
         required: true
         default: "model/forward"
       backward_savedmodel_path:
-        description: "Relative path to backward SavedModel"
+        description: "Relative path to backward SavedModel (optional)"
         required: false
         default: "model/backward"
-      commit_changes:
-        description: "Commit converted TFJS back to repo?"
-        required: true
-        default: "false"
       forward_output_path:
-        description: "Custom output directory for forward TFJS model"
+        description: "Output directory for forward TFJS model"
         required: false
         default: "server/models/dynamicworld/forward"
       backward_output_path:
-        description: "Custom output directory for backward TFJS model"
+        description: "Output directory for backward TFJS model"
         required: false
         default: "server/models/dynamicworld/backward"
 
@@ -36,7 +32,7 @@ jobs:
         with:
           node-version: 18
 
-      - name: Setup Python 3.10
+      - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
@@ -46,22 +42,24 @@ jobs:
           python -m pip install --upgrade pip
           pip install "numpy<2"
           pip install tensorflow-cpu==2.12.0
-          pip install tensorflowjs==4.8.0  # fixed version without JAX
+          pip install tensorflowjs==3.18.0  # avoids JAX issues
 
-      - name: Clone DynamicWorld
-        run: git clone --depth 1 https://github.com/google/dynamicworld.git dynamicworld
+      - name: Clone DynamicWorld repository
+        run: |
+          git clone --depth 1 https://github.com/google/dynamicworld.git dynamicworld
 
       - name: Convert forward SavedModel -> TFJS
         env:
           SAVEDMODEL_PATH: ${{ github.event.inputs.forward_savedmodel_path }}
           OUTPUT_PATH: ${{ github.event.inputs.forward_output_path }}
         run: |
+          echo "Converting forward model..."
           tensorflowjs_converter \
             --input_format=tf_saved_model \
             --signature_name=serving_default \
             --saved_model_tags=serve \
             dynamicworld/${SAVEDMODEL_PATH} \
-            ${OUTPUT_PATH} || (echo "forward conversion failed" && exit 1)
+            ${OUTPUT_PATH} || (echo "Forward conversion failed!" && exit 1)
 
       - name: Convert backward SavedModel -> TFJS
         env:
@@ -69,38 +67,21 @@ jobs:
           OUTPUT_PATH: ${{ github.event.inputs.backward_output_path }}
         run: |
           if [ -d "dynamicworld/${SAVEDMODEL_PATH}" ]; then
+            echo "Converting backward model..."
             tensorflowjs_converter \
               --input_format=tf_saved_model \
               --signature_name=serving_default \
               --saved_model_tags=serve \
               dynamicworld/${SAVEDMODEL_PATH} \
-              ${OUTPUT_PATH} || echo "backward conversion failed"
+              ${OUTPUT_PATH} || echo "Backward conversion failed!"
           else
-            echo "Backward model path not present, skipping"
+            echo "Backward model not found, skipping..."
           fi
 
-      - name: Show converted model sizes
-        run: |
-          du -sh ${{ github.event.inputs.forward_output_path }} || true
-          du -sh ${{ github.event.inputs.backward_output_path }} || true
-
-      - name: Commit TFJS models (optional)
-        if: ${{ github.event.inputs.commit_changes == 'true' }}
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add ${{ github.event.inputs.forward_output_path }} ${{ github.event.inputs.backward_output_path }} || true
-          git commit -m "Add converted DynamicWorld TFJS models [ci]" || echo "nothing to commit"
-          git push origin HEAD:${{ github.ref_name || github.head_ref || github.ref }} || echo "push failed"
-
-      - name: Upload TFJS artifacts (if not committing)
-        if: ${{ github.event.inputs.commit_changes != 'true' }}
+      - name: Upload TFJS artifacts
         uses: actions/upload-artifact@v4
         with:
           name: dynamicworld-tfjs
           path: |
             ${{ github.event.inputs.forward_output_path }}/**
             ${{ github.event.inputs.backward_output_path }}/**
-
-      - name: Done
-        run: echo "DynamicWorld TFJS conversion workflow finished."
