@@ -1,58 +1,52 @@
-name: Convert DynamicWorld Model
+name: DynamicWorld Model Setup
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
-  convert:
+  setup-dynamicworld:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+    # 1. Checkout the repo
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.10  # fixed version to avoid 3.1 errors
+    # 2. Setup Python 3.10
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.10
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install tensorflow==2.13.1 tensorflowjs==3.18.0
+    # 3. Upgrade pip and install dependencies
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install tensorflow tensorflowjs
 
-      - name: Verify DynamicWorld model exists
-        run: |
-          if [ ! -d "./dynamicworld/model/forward" ] || [ ! -d "./dynamicworld/model/backward" ]; then
-            echo "ERROR: DynamicWorld saved_model folders not found!"
-            exit 1
-          fi
-          echo "DynamicWorld models found."
+    # 4. Check if DynamicWorld model exists
+    - name: Verify DynamicWorld model
+      run: |
+        if [ ! -d "./models/dynamicworld" ]; then
+          echo "ERROR: ./models/dynamicworld folder not found!"
+          echo "Please make sure you committed the DynamicWorld SavedModel in ./models/dynamicworld"
+          exit 1
+        else
+          echo "DynamicWorld model found."
+        fi
 
-      - name: Convert Forward Model to TFJS
-        run: |
-          mkdir -p ./dynamicworld/tfjs/forward
-          tensorflowjs_converter \
-            --input_format=tf_saved_model \
-            --output_format=tfjs_graph_model \
-            ./dynamicworld/model/forward \
-            ./dynamicworld/tfjs/forward
+    # 5. Convert DynamicWorld model to TensorFlow.js (example)
+    - name: Convert DynamicWorld to TensorFlow.js
+      run: |
+        tensorflowjs_converter \
+        --input_format=tf_saved_model \
+        --output_format=tfjs_graph_model \
+        ./models/dynamicworld \
+        ./models/dynamicworld_tfjs
 
-      - name: Convert Backward Model to TFJS
-        run: |
-          mkdir -p ./dynamicworld/tfjs/backward
-          tensorflowjs_converter \
-            --input_format=tf_saved_model \
-            --output_format=tfjs_graph_model \
-            ./dynamicworld/model/backward \
-            ./dynamicworld/tfjs/backward
-
-      - name: List converted TFJS files
-        run: |
-          echo "Forward TFJS files:"
-          ls -R ./dynamicworld/tfjs/forward
-          echo "Backward TFJS files:"
-          ls -R ./dynamicworld/tfjs/backward
+    # 6. List files to confirm
+    - name: List converted files
+      run: |
+        ls -R ./models/dynamicworld_tfjs
