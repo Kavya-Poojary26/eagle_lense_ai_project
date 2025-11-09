@@ -15,6 +15,14 @@ on:
         description: "Commit converted TFJS back to repo?"
         required: true
         default: "false"
+      forward_output_path:
+        description: "Custom output directory for forward TFJS model"
+        required: false
+        default: "server/models/dynamicworld/forward"
+      backward_output_path:
+        description: "Custom output directory for backward TFJS model"
+        required: false
+        default: "server/models/dynamicworld/backward"
 
 jobs:
   convert:
@@ -49,15 +57,17 @@ jobs:
       - name: Convert forward SavedModel -> TFJS
         env:
           SAVEDMODEL_PATH: ${{ github.event.inputs.forward_savedmodel_path }}
+          OUTPUT_PATH: ${{ github.event.inputs.forward_output_path }}
         run: |
-          .github/scripts/convert_dynamicworld.sh dynamicworld/${SAVEDMODEL_PATH} server/models/dynamicworld/forward || (echo "forward conversion failed" && exit 1)
+          .github/scripts/convert_dynamicworld.sh dynamicworld/${SAVEDMODEL_PATH} ${OUTPUT_PATH} || (echo "forward conversion failed" && exit 1)
 
       - name: Convert backward SavedModel -> TFJS
         env:
           SAVEDMODEL_PATH: ${{ github.event.inputs.backward_savedmodel_path }}
+          OUTPUT_PATH: ${{ github.event.inputs.backward_output_path }}
         run: |
           if [ -d "dynamicworld/${SAVEDMODEL_PATH}" ]; then
-            .github/scripts/convert_dynamicworld.sh dynamicworld/${SAVEDMODEL_PATH} server/models/dynamicworld/backward || echo "backward conversion failed"
+            .github/scripts/convert_dynamicworld.sh dynamicworld/${SAVEDMODEL_PATH} ${OUTPUT_PATH} || echo "backward conversion failed"
           else
             echo "Backward model path not present, skipping"
           fi
@@ -69,16 +79,16 @@ jobs:
 
       - name: Verify forward TFJS model (quick)
         run: |
-          if [ -f server/models/dynamicworld/forward/model.json ]; then
-            node server/verify_tfjs_model.js server/models/dynamicworld/forward/model.json || echo "verify forward failed (non-fatal)"
+          if [ -f ${{ github.event.inputs.forward_output_path }}/model.json ]; then
+            node server/verify_tfjs_model.js ${{ github.event.inputs.forward_output_path }}/model.json || echo "verify forward failed (non-fatal)"
           else
             echo "forward model.json not found; skipping verify"
           fi
 
       - name: Verify backward TFJS model (quick)
         run: |
-          if [ -f server/models/dynamicworld/backward/model.json ]; then
-            node server/verify_tfjs_model.js server/models/dynamicworld/backward/model.json || echo "verify backward failed (non-fatal)"
+          if [ -f ${{ github.event.inputs.backward_output_path }}/model.json ]; then
+            node server/verify_tfjs_model.js ${{ github.event.inputs.backward_output_path }}/model.json || echo "verify backward failed (non-fatal)"
           else
             echo "backward model.json not found; skipping verify"
           fi
@@ -103,8 +113,8 @@ jobs:
         with:
           name: dynamicworld-tfjs
           path: |
-            server/models/dynamicworld/forward/**
-            server/models/dynamicworld/backward/**
+            ${{ github.event.inputs.forward_output_path }}/**
+            ${{ github.event.inputs.backward_output_path }}/**
 
       - name: Done
         run: echo "Conversion workflow finished (check artifacts or commit)."
