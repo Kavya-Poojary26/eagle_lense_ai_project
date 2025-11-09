@@ -2,7 +2,8 @@ name: Convert DynamicWorld Model
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
@@ -10,37 +11,44 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout repository
+      # Step 1: Checkout your repo
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      # Setup Python (fixed version)
+      # Step 2: Setup Python 3.10
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.10  # <-- changed from 3.1 to 3.10
+          python-version: '3.10'
 
-      # Install dependencies
+      # Step 3: Upgrade pip
+      - name: Upgrade pip
+        run: pip install --upgrade pip
+
+      # Step 4: Install required Python packages
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
           pip install tensorflow==2.13.1 tensorflowjs==3.18.0 tensorflow-hub==0.12.0 protobuf==3.20.3
 
-      # Make sure models folder exists
-      - name: Create models folder
-        run: mkdir -p ./models/dynamicworld
-
-      # Copy DynamicWorld saved_model from repo to models folder
-      - name: Copy DynamicWorld SavedModel
-        run: cp -r ./dynamicworld/saved_model ./models/dynamicworld
-
-      # Convert the DynamicWorld SavedModel to TensorFlow.js format
-      - name: Convert DynamicWorld model to TFJS
+      # Step 5: Check if DynamicWorld model exists
+      - name: Check DynamicWorld model
         run: |
-          echo "Converting DynamicWorld model..."
+          if [ ! -d "./models/dynamicworld" ]; then
+            echo "ERROR: ./models/dynamicworld folder not found!"
+            echo "Please download the DynamicWorld SavedModel manually and place it in ./models/dynamicworld"
+            exit 1
+          else
+            echo "DynamicWorld model found."
+          fi
+
+      # Step 6: Convert DynamicWorld model to TensorFlow.js
+      - name: Convert DynamicWorld to TensorFlow.js
+        run: |
           tensorflowjs_converter \
             --input_format=tf_saved_model \
             --output_format=tfjs_graph_model \
-            --signature_name=serving_default \
             ./models/dynamicworld \
-            ./models/dynamicworld/tfjs
+            ./models/dynamicworld_tfjs
+
+      - name: Finished
+        run: echo "DynamicWorld model successfully converted to TensorFlow.js format!"
