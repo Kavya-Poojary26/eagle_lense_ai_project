@@ -2,46 +2,56 @@ name: Convert DynamicWorld Model
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
-  convert-model:
+  convert-dynamicworld:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout repo
-      - name: Checkout repository
-        uses: actions/checkout@v3
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-      # 2. Ensure model folder exists locally
-      - name: Check DynamicWorld model folder
-        run: |
-          if [ ! -d "./models/dynamicworld" ]; then
-            echo "ERROR: ./models/dynamicworld folder not found!"
-            echo "Please download the DynamicWorld SavedModel manually and place it in ./models/dynamicworld"
-            exit 1
-          fi
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.10
 
-      # 3. Set up Python
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v5
-        with:
-          python-version: 3.10
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install tensorflow==2.13.1 tensorflowjs==3.18.0 protobuf==3.20.3 tensorflow-hub==0.12.0
 
-      # 4. Install dependencies
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install tensorflow tensorflowjs==3.18.0 tensorflow-hub protobuf==3.20.3
+    - name: Verify DynamicWorld model exists
+      run: |
+        if [ ! -d "./models/dynamicworld/model/forward" ]; then
+          echo "Forward model not found! Please make sure saved_model.pb is in ./models/dynamicworld/model/forward"
+          exit 1
+        fi
+        if [ ! -d "./models/dynamicworld/model/backward" ]; then
+          echo "Backward model not found! Please make sure saved_model.pb is in ./models/dynamicworld/model/backward"
+          exit 1
+        fi
 
-      # 5. Convert model to TensorFlow.js format
-      - name: Convert DynamicWorld SavedModel to TFJS
-        run: |
-          echo "Converting DynamicWorld model..."
-          tensorflowjs_converter \
-            --input_format=tf_saved_model \
-            --output_format=tfjs_graph_model \
-            --signature_name=serving_default \
-            ./models/dynamicworld \
-            ./models/dynamicworld-tfjs
+    - name: Convert forward model
+      run: |
+        echo "Converting forward model..."
+        tensorflowjs_converter \
+          --input_format=tf_saved_model \
+          --output_format=tfjs_graph_model \
+          ./models/dynamicworld/model/forward \
+          ./models/dynamicworld/tfjs_forward
+
+    - name: Convert backward model
+      run: |
+        echo "Converting backward model..."
+        tensorflowjs_converter \
+          --input_format=tf_saved_model \
+          --output_format=tfjs_graph_model \
+          ./models/dynamicworld/model/backward \
+          ./models/dynamicworld/tfjs_backward
+
+    - name: List converted models
+      run: ls -R ./models/dynamicworld
