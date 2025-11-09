@@ -46,11 +46,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install "numpy<2"
           pip install tensorflow-cpu==2.12.0
-          pip install tensorflowjs==4.8.0  # key: no JAX dependency
+          pip install tensorflowjs==4.8.0  # fixed version without JAX
 
       - name: Clone DynamicWorld
-        run: |
-          git clone --depth 1 https://github.com/google/dynamicworld.git dynamicworld
+        run: git clone --depth 1 https://github.com/google/dynamicworld.git dynamicworld
 
       - name: Convert forward SavedModel -> TFJS
         env:
@@ -80,10 +79,28 @@ jobs:
             echo "Backward model path not present, skipping"
           fi
 
-      - name: Upload TFJS artifacts
+      - name: Show converted model sizes
+        run: |
+          du -sh ${{ github.event.inputs.forward_output_path }} || true
+          du -sh ${{ github.event.inputs.backward_output_path }} || true
+
+      - name: Commit TFJS models (optional)
+        if: ${{ github.event.inputs.commit_changes == 'true' }}
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ${{ github.event.inputs.forward_output_path }} ${{ github.event.inputs.backward_output_path }} || true
+          git commit -m "Add converted DynamicWorld TFJS models [ci]" || echo "nothing to commit"
+          git push origin HEAD:${{ github.ref_name || github.head_ref || github.ref }} || echo "push failed"
+
+      - name: Upload TFJS artifacts (if not committing)
+        if: ${{ github.event.inputs.commit_changes != 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: dynamicworld-tfjs
           path: |
             ${{ github.event.inputs.forward_output_path }}/**
             ${{ github.event.inputs.backward_output_path }}/**
+
+      - name: Done
+        run: echo "DynamicWorld TFJS conversion workflow finished."
