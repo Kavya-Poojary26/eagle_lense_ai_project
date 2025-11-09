@@ -1,22 +1,26 @@
-name: Convert DynamicWorld to TFJS
+name: Convert DynamicWorld
 
 on:
   workflow_dispatch:
     inputs:
       forward_savedmodel_path:
-        description: "Path to forward SavedModel"
+        description: "Relative path to forward SavedModel"
         required: true
         default: "model/forward"
       backward_savedmodel_path:
-        description: "Path to backward SavedModel"
+        description: "Relative path to backward SavedModel"
         required: false
         default: "model/backward"
+      commit_changes:
+        description: "Commit converted TFJS back to repo?"
+        required: true
+        default: "false"
       forward_output_path:
-        description: "Output directory for forward TFJS model"
+        description: "Custom output directory for forward TFJS model"
         required: false
         default: "server/models/dynamicworld/forward"
       backward_output_path:
-        description: "Output directory for backward TFJS model"
+        description: "Custom output directory for backward TFJS model"
         required: false
         default: "server/models/dynamicworld/backward"
 
@@ -28,41 +32,58 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Clone DynamicWorld repo
-        run: git clone --depth 1 https://github.com/google/dynamicworld.git dynamicworld
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
 
-      - name: Convert forward SavedModel -> TFJS (Docker)
+      - name: Setup Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install "numpy<2" tensorflow-cpu==2.12.0 tensorflowjs==4.8.0
+
+      - name: Clone DynamicWorld
+        run: |
+          git clone --depth 1 https://github.com/google/dynamicworld.git dynamicworld
+
+      - name: Convert forward SavedModel -> TFJS
+        env:
+          SAVEDMODEL_PATH: ${{ github.event.inputs.forward_savedmodel_path }}
+          OUTPUT_PATH: ${{ github.event.inputs.forward_output_path }}
         run: |
           echo "Converting forward model..."
-          docker run --rm -v $PWD:/workspace tensorflow/tensorflow:2.12.0 \
-          /bin/bash -c "
-            pip install --upgrade pip &&
-            pip install tensorflowjs==3.18.0 numpy<1.25 &&
+          if [ -d "dynamicworld/${SAVEDMODEL_PATH}" ]; then
             tensorflowjs_converter \
               --input_format=tf_saved_model \
               --signature_name=serving_default \
               --saved_model_tags=serve \
-              /workspace/dynamicworld/${{ github.event.inputs.forward_savedmodel_path }} \
-              /workspace/${{ github.event.inputs.forward_output_path }}
-          "
-
-      - name: Convert backward SavedModel -> TFJS (Docker)
-        run: |
-          if [ -d "dynamicworld/${{ github.event.inputs.backward_savedmodel_path }}" ]; then
-            echo "Converting backward model..."
-            docker run --rm -v $PWD:/workspace tensorflow/tensorflow:2.12.0 \
-            /bin/bash -c "
-              pip install --upgrade pip &&
-              pip install tensorflowjs==3.18.0 numpy<1.25 &&
-              tensorflowjs_converter \
-                --input_format=tf_saved_model \
-                --signature_name=serving_default \
-                --saved_model_tags=serve \
-                /workspace/dynamicworld/${{ github.event.inputs.backward_savedmodel_path }} \
-                /workspace/${{ github.event.inputs.backward_output_path }}
-            "
+              dynamicworld/${SAVEDMODEL_PATH} \
+              ${OUTPUT_PATH} || (echo "Forward conversion failed!" && exit 1)
           else
-            echo "Backward model path not present, skipping conversion."
+            echo "Forward model path not found!"
+            exit 1
+          fi
+
+      - name: Convert backward SavedModel -> TFJS
+        env:
+          SAVEDMODEL_PATH: ${{ github.event.inputs.backward_savedmodel_path }}
+          OUTPUT_PATH: ${{ github.event.inputs.backward_output_path }}
+        run: |
+          if [ -d "dynamicworld/${SAVEDMODEL_PATH}" ]; then
+            echo "Converting backward model..."
+            tensorflowjs_converter \
+              --input_format=tf_saved_model \
+              --signature_name=serving_default \
+              --saved_model_tags=serve \
+              dynamicworld/${SAVEDMODEL_PATH} \
+              ${OUTPUT_PATH} || echo "Backward conversion failed!"
+          else
+            echo "Backward model path not present, skipping"
           fi
 
       - name: Upload TFJS artifacts
