@@ -1,0 +1,14 @@
+{
+  "name": "eagle-lens",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm:dev:*\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd server && npm run dev",
+    "install:all": "npm install --prefix frontend && npm install --prefix server"
+  },
+  "dependencies": {
+    "concurrently": "^8.2.0"
+  }
+}

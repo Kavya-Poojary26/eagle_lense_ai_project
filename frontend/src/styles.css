@@ -1,0 +1,123 @@
+:root {
+  --bg: #0b0b0c;
+  --panel: #0f1113;
+  --accent: #00d184;
+  --muted: #9aa0a6;
+  --card: #101214;
+  color-scheme: dark;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+
+body {
+  margin: 0;
+  background: linear-gradient(180deg, #020202 0%, #0b0b0c 100%);
+  color: #e6eef3;
+}
+
+/* layout */
+.app {
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  height: 100vh;
+  gap: 18px;
+  padding: 18px;
+  box-sizing: border-box;
+}
+
+.left {
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border-radius: 12px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.header {
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.chat-box {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.input-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.input-row input {
+  flex: 1;
+  background: #0c0e10;
+  border: 1px solid rgba(255,255,255,0.04);
+  color: #fff;
+  padding: 12px;
+  border-radius: 10px;
+}
+
+.send-button {
+  background: var(--accent);
+  color: #021;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+/* message bubbles */
+.msg {
+  margin-bottom: 12px;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.msg .bubble {
+  background: rgba(255,255,255,0.03);
+  padding: 10px;
+  border-radius: 10px;
+  max-width: 320px;
+}
+
+.msg.user .bubble {
+  background: linear-gradient(90deg,#0b1720,#0a1a1e);
+  border: 1px solid rgba(255,255,255,0.03);
+  align-self: flex-end;
+}
+
+/* right column (map + analytics) */
+.right {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: 12px;
+}
+
+.map-card {
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  padding: 12px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.leaflet-container {
+  height: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 8px;
+}
