@@ -2,8 +2,7 @@ name: Convert DynamicWorld Model
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -11,42 +10,37 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout your repo
+      # Checkout your repo
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # 2. Set up Python (use a valid version)
+      # Setup Python
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: 3.10
 
-      # 3. Upgrade pip and install dependencies
+      # Install dependencies
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install tensorflow==2.13.1 tensorflowjs==3.18.0 tensorflow-hub==0.12.0 protobuf==3.20.3
 
-      # 4. Make sure models folder exists
-      - name: Prepare models directory
-        run: |
-          mkdir -p ./models/dynamicworld
+      # Make sure models folder exists
+      - name: Create models folder
+        run: mkdir -p ./models/dynamicworld
 
-      # 5. Check if saved_model exists
-      - name: Check DynamicWorld SavedModel
-        run: |
-          if [ ! -d "./models/dynamicworld/saved_model" ]; then
-            echo "ERROR: ./models/dynamicworld/saved_model folder not found!"
-            echo "Please add the DynamicWorld SavedModel manually before running this workflow."
-            exit 1
-          fi
+      # Copy DynamicWorld saved_model from repo to models folder
+      - name: Copy DynamicWorld SavedModel
+        run: cp -r ./dynamicworld/saved_model ./models/dynamicworld
 
-      # 6. Convert DynamicWorld SavedModel to TensorFlowJS format
-      - name: Convert DynamicWorld to TensorFlowJS
+      # Convert the DynamicWorld SavedModel to TensorFlow.js format
+      - name: Convert DynamicWorld model to TFJS
         run: |
-          echo "Converting DynamicWorld model to TensorFlowJS format..."
+          echo "Converting DynamicWorld model..."
           tensorflowjs_converter \
             --input_format=tf_saved_model \
             --output_format=tfjs_graph_model \
-            ./models/dynamicworld/saved_model \
-            ./models/dynamicworld/tfjs_model
+            --signature_name=serving_default \
+            ./models/dynamicworld \
+            ./models/dynamicworld/tfjs
