@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       forward_savedmodel_path:
-        description: "Relative path to forward SavedModel (inside google/dynamicworld)"
+        description: "Relative path to forward SavedModel"
         required: true
         default: "model/forward"
       backward_savedmodel_path:
-        description: "Relative path to backward SavedModel (inside google/dynamicworld)"
+        description: "Relative path to backward SavedModel"
         required: false
         default: "model/backward"
       commit_changes:
@@ -31,7 +31,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Ensure Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
@@ -46,15 +46,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install "numpy<2"
           pip install tensorflow-cpu==2.12.0
-          pip install tensorflowjs==4.9.0
+          pip install tensorflowjs==4.8.0  # Use version without JAX dependency
 
-      - name: Clone DynamicWorld repo
+      - name: Clone DynamicWorld
         run: |
           git clone --depth 1 https://github.com/google/dynamicworld.git dynamicworld
-          ls -la dynamicworld
-
-      - name: Make conversion script executable
-        run: chmod +x .github/scripts/convert_dynamicworld.sh
 
       - name: Convert forward SavedModel -> TFJS
         env:
@@ -84,45 +80,10 @@ jobs:
             echo "Backward model path not present, skipping"
           fi
 
-      - name: Add verify script and install tfjs-node
-        run: |
-          cp .github/scripts/verify_tfjs_model.js server/verify_tfjs_model.js
-          npm install @tensorflow/tfjs-node@5.1.0 --prefix server
-
-      - name: Verify forward TFJS model
-        run: |
-          if [ -f ${{ github.event.inputs.forward_output_path }}/model.json ]; then
-            node server/verify_tfjs_model.js ${{ github.event.inputs.forward_output_path }}/model.json || echo "verify forward failed (non-fatal)"
-          fi
-
-      - name: Verify backward TFJS model
-        run: |
-          if [ -f ${{ github.event.inputs.backward_output_path }}/model.json ]; then
-            node server/verify_tfjs_model.js ${{ github.event.inputs.backward_output_path }}/model.json || echo "verify backward failed (non-fatal)"
-          fi
-
-      - name: Show sizes
-        run: |
-          du -sh server/models/dynamicworld/* || true
-          find server/models/dynamicworld -maxdepth 3 -type f -printf "%p %s\n" | head -n 30 || true
-
-      - name: Commit TFJS models (optional)
-        if: ${{ github.event.inputs.commit_changes == 'true' }}
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add server/models/dynamicworld
-          git commit -m "Add converted DynamicWorld TFJS models [ci]" || echo "nothing to commit"
-          git push origin HEAD:${{ github.ref_name || github.head_ref || github.ref }} || echo "push failed"
-
-      - name: Upload TFJS artifacts if not committing
-        if: ${{ github.event.inputs.commit_changes != 'true' }}
+      - name: Upload TFJS artifacts
         uses: actions/upload-artifact@v4
         with:
           name: dynamicworld-tfjs
           path: |
             ${{ github.event.inputs.forward_output_path }}/**
             ${{ github.event.inputs.backward_output_path }}/**
-
-      - name: Done
-        run: echo "Conversion workflow finished (check artifacts or commit)."
