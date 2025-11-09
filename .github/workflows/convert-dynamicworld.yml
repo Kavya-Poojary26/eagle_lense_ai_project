@@ -6,11 +6,11 @@ on:
       forward_savedmodel_path:
         description: "Relative path to forward SavedModel (inside google/dynamicworld)"
         required: true
-        default: "models/forward"
+        default: "model/forward"
       backward_savedmodel_path:
         description: "Relative path to backward SavedModel (inside google/dynamicworld)"
         required: false
-        default: "models/backward"
+        default: "model/backward"
       commit_changes:
         description: "Commit converted TFJS back to repo?"
         required: true
