@@ -1,6 +1,14 @@
-/node_modules
-/frontend/node_modules
-/server/node_modules
+# Node.js
+node_modules/
+dist/
 .env
-server/models/dynamicworld
-/dist
+.env.local
+
+# Vite / React build
+/.vite/
+/dist/
+
+# Python backend (if any)
+__pycache__/
+*.py[cod]
+venv/
