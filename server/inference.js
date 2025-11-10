@@ -1,8 +1,8 @@
 /**
  * runInferenceForBBox(bbox, analysisMeta)
  *
- * Attempts to load a TFJS model in ./models/dynamicworld/model.json (TFJS format) using @tensorflow/tfjs-node
- * and run segmentation on satellite imagery for the bbox. Real pipeline must:
+ * Attempts to load a TFJS model in ./models/dynamicworld/model.json (TFJS format) using 
+ * and run segmentation on satellite image@tensorflow/tfjsry for the bbox. Real pipeline must:
  * - fetch Sentinel-2 imagery (true-color or appropriate bands) for the bbox and date ranges
  * - preprocess into model's input size and bands
  * - run model.predict(...) and postprocess to produce a GeoJSON polygon for changed areas
@@ -15,7 +15,7 @@
 
 const fs = require("fs");
 const path = require("path");
-const tf = require("@tensorflow/tfjs-node");
+const tf = require("@tensorflow/tfjs");
 
 // helper to create a simulated polygon (GeoJSON)
 function createSimulatedGeoJSONPolygon(bbox) {

@@ -1,0 +1,6 @@
+{
+  "changes": [
+    { "type": "deforestation", "area": "Mangalore", "year": 2023 },
+    { "type": "urban_expansion", "area": "Mangalore", "year": 2023 }
+  ]
+}

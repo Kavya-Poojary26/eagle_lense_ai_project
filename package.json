@@ -2,13 +2,29 @@
   "name": "eagle-lens",
   "version": "0.1.0",
   "private": true,
+  "description": "Full-stack setup for EAGLE Lens: React + Vite frontend with Leaflet, and Express backend with NLP, geocoding, and Dynamic World inference support.",
+  "main": "index.js",
   "scripts": {
-    "dev": "concurrently \"npm:dev:*\"",
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
     "dev:frontend": "cd frontend && npm run dev",
     "dev:backend": "cd server && npm run dev",
     "install:all": "npm install --prefix frontend && npm install --prefix server"
   },
   "dependencies": {
-    "concurrently": "^8.2.0"
-  }
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "eagle-lens",
+    "react",
+    "vite",
+    "express",
+    "tensorflow",
+    "dynamic-world",
+    "nlp"
+  ],
+  "author": "",
+  "license": "ISC"
 }
