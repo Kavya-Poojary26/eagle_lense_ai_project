@@ -1,2 +1,36 @@
-:root { --bg: #0a0a0a; --fg: #e5e7eb; }
-html, body, #root { height: 100%; margin: 0; background: var(--bg); color: var(--fg); font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial; }
+/* Global layout: make sure everything that uses 100% heights actually has a reference height */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: #0b0b0b; /* optional */
+  color: #e6fff2;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+
+/* If your top-level App component uses an app-root class, ensure it fills the viewport */
+.app-root {
+  display: flex;
+  flex-direction: row; /* or column depending on your layout */
+  min-height: 100%;
+  height: 100%;
+}
+
+/* Map container must have a concrete height; percent heights require parent to have height */
+.map-container, #map {
+  width: 100%;
+  height: calc(100vh - 80px); /* tune 80px to match your header/topbar height */
+  min-height: 420px;
+  flex: 1 1 auto;
+}
+
+/* Prevent any overlay from permanently covering the dashboard; tune z-index as needed */
+.debug-overlay, .terminal-panel {
+  z-index: 10;
+}
+.side-panel {
+  z-index: 20;
+}
+.leaflet-container {
+  z-index: 5;
+}
